@@ -1,0 +1,338 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Calidad de registros IMU con ML</title>
+  <meta name="description" content="Prototipo académico: detección automática de registros de sensores IMU defectuosos con machine learning, con datos simulados." />
+  <style>
+    :root {
+      --bg: #fbfaf7; --surface: #ffffff; --ink: #1d2021; --muted: #5d6366; --line: #e4e1da;
+      --accent: #0b6e4f; --accent-soft: #e3f1ea; --bad: #b42318; --bad-soft: #fbe9e7; --warn: #9a6700;
+      --code: #f2efe8;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #141617; --surface: #1c1f20; --ink: #e8e6e1; --muted: #a3a8aa; --line: #2e3234;
+        --accent: #4cc38a; --accent-soft: #173326; --bad: #f97066; --bad-soft: #3a1d1a; --warn: #e3b341;
+        --code: #24282a;
+      }
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; background: var(--bg); color: var(--ink); font: 17px/1.6 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+    main { max-width: 920px; margin: 0 auto; padding: 0 16px 80px; }
+    nav { position: sticky; top: 0; z-index: 2; background: var(--bg); border-bottom: 1px solid var(--line); }
+    nav .in { max-width: 920px; margin: 0 auto; padding: 10px 16px; display: flex; gap: 18px; overflow-x: auto; white-space: nowrap; font-size: 14px; }
+    nav a { color: var(--muted); text-decoration: none; }
+    nav a:hover { color: var(--accent); }
+    header { padding: 56px 0 28px; }
+    .tag { display: inline-block; font-size: 13px; letter-spacing: .04em; text-transform: uppercase; color: var(--accent); font-weight: 600; }
+    h1 { font-size: clamp(30px, 5vw, 44px); line-height: 1.15; margin: 10px 0 14px; letter-spacing: -.01em; }
+    h2 { font-size: 27px; margin: 64px 0 12px; letter-spacing: -.01em; }
+    h3 { font-size: 19px; margin: 28px 0 8px; }
+    p { margin: 0 0 14px; }
+    .lead { font-size: 19px; color: var(--muted); max-width: 720px; }
+    .btns { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 22px; }
+    .btn { display: inline-block; padding: 11px 18px; border-radius: 8px; text-decoration: none; font-weight: 600; font-size: 15px; }
+    .btn.primary { background: var(--accent); color: #fff; }
+    .btn.ghost { border: 1px solid var(--line); color: var(--ink); background: var(--surface); }
+    .note { font-size: 14px; color: var(--muted); margin-top: 10px; }
+    .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 14px; margin: 18px 0; }
+    .card { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 18px; }
+    .card h3 { margin-top: 0; }
+    .card .k { font-size: 13px; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); font-weight: 600; }
+    .kpi { font-size: 32px; font-weight: 700; color: var(--accent); line-height: 1.2; }
+    table { width: 100%; border-collapse: collapse; margin: 14px 0 6px; font-size: 15px; background: var(--surface); }
+    th, td { text-align: left; padding: 9px 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
+    th { font-size: 13px; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); }
+    td.n, th.n { text-align: right; font-variant-numeric: tabular-nums; }
+    .scroll { overflow-x: auto; }
+    figure { margin: 22px 0; }
+    figure img { width: 100%; border-radius: 10px; border: 1px solid var(--line); display: block; }
+    figcaption { font-size: 14px; color: var(--muted); margin-top: 8px; }
+    svg text { font-family: system-ui, sans-serif; }
+    .diagram { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 14px; }
+    code { background: var(--code); padding: 1px 6px; border-radius: 4px; font-size: 14px; }
+    pre { background: var(--code); padding: 14px; border-radius: 8px; overflow-x: auto; font-size: 14px; }
+    dl { display: grid; grid-template-columns: minmax(130px, 200px) 1fr; gap: 8px 18px; }
+    dt { font-weight: 600; }
+    dd { margin: 0; color: var(--muted); }
+    @media (max-width: 560px) { dl { grid-template-columns: 1fr; } dd { margin-bottom: 8px; } }
+    .pill { display: inline-block; font-size: 12px; padding: 2px 8px; border-radius: 99px; font-weight: 600; }
+    .pill.ok { background: var(--accent-soft); color: var(--accent); }
+    .pill.bad { background: var(--bad-soft); color: var(--bad); }
+    footer { margin-top: 64px; padding-top: 18px; border-top: 1px solid var(--line); font-size: 14px; color: var(--muted); }
+    a { color: var(--accent); }
+  </style>
+</head>
+<body>
+<nav><div class="in">
+  <a href="#resumen">Resumen</a><a href="#contexto">Contexto</a><a href="#problema">Problema</a>
+  <a href="#solucion">Solución</a><a href="#datos">Datos simulados</a><a href="#metricas">Métricas</a>
+  <a href="#impacto">Impacto</a><a href="#prototipo">Prototipo</a><a href="#limitaciones">Limitaciones</a>
+  <a href="#glosario">Glosario</a><a href="#repo">Repositorio</a>
+</div></nav>
+
+<main>
+<header>
+  <span class="tag">Prototipo académico · IA / ML / Datos</span>
+  <h1>Detección automática de registros de sensores defectuosos en un laboratorio de análisis de movimiento</h1>
+  <p class="lead">Un modelo de machine learning revisa cada prueba en el momento en que se captura y avisa si los datos
+    quedaron dañados, para que el fisioterapeuta la repita mientras el paciente sigue presente.</p>
+  <div class="btns">
+    <a class="btn primary" href="app/">Abrir el prototipo →</a>
+    <a class="btn ghost" href="REPO_URL">Ver el código en GitHub</a>
+  </div>
+  <p class="note">El prototipo corre completo en su navegador (no hay servidor). La primera carga tarda entre 30 y 60 segundos.
+    Todos los datos son simulados: no contiene datos personales.</p>
+</header>
+
+<section id="resumen">
+  <h2>Resumen en 30 segundos</h2>
+  <div class="cards">
+    <div class="card"><div class="k">Problema</div><p>Muchas pruebas llegan con datos dañados (huecos, sensores
+      desconectados, archivos duplicados o vacíos) y el daño se descubre semanas después, cuando el paciente ya no está.</p></div>
+    <div class="card"><div class="k">Solución</div><p>Un clasificador Random Forest calcula 13 indicadores de calidad de la
+      señal y diagnostica el registro en menos de un segundo: válido o uno de 5 tipos de falla, con una acción sugerida.</p></div>
+    <div class="card"><div class="k">Resultado</div><p>Detecta el <b>97,4 %</b> de los registros defectuosos con
+      <b>4,8 %</b> de falsas alarmas. En el escenario base, los datos útiles pasan del <b>85 % al 99,6 %</b>.</p></div>
+  </div>
+</section>
+
+<section id="contexto">
+  <h2>Contexto: qué es cada cosa</h2>
+  <p>El escenario es un laboratorio universitario que evalúa la función motora de pacientes (por ejemplo, adultos
+    mayores o personas con enfermedades neurológicas) con sensores portátiles, tanto en su sede como en campañas de
+    campo en otras ciudades.</p>
+
+  <h3>Sensor IMU</h3>
+  <p>Una <b>unidad de medición inercial</b> es un dispositivo pequeño que se sujeta al cuerpo y mide movimiento. Tiene
+    un <b>acelerómetro</b> (cambios de velocidad, en unidades de gravedad <i>g</i>) y un <b>giroscopio</b> (velocidad de
+    rotación, en grados por segundo). En este escenario se usan dos, uno en cada tobillo, enviando unas 50 muestras por
+    segundo por Bluetooth.</p>
+
+  <h3>La prueba TAPPING_TOE</h3>
+  <p>El paciente, sentado, golpetea el suelo con la punta de los pies durante 20 a 40 segundos. La frecuencia, el ritmo
+    y la simetría del golpeteo entre ambos pies sirven para evaluar la coordinación motora. En la señal se ve como una
+    serie de picos regulares en el giroscopio de cada tobillo.</p>
+
+  <h3>El recorrido del dato</h3>
+  <div class="diagram">
+    <svg viewBox="0 0 860 210" width="100%" role="img" aria-label="Flujo del dato: sensores, tablet, servidor y análisis, con los puntos donde aparecen las fallas">
+      <defs><marker id="f" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="currentColor"/></marker></defs>
+      <g style="color: var(--muted)" stroke="currentColor" stroke-width="1.6" fill="none" marker-end="url(#f)">
+        <line x1="180" y1="70" x2="235" y2="70"/><line x1="405" y1="70" x2="460" y2="70"/><line x1="630" y1="70" x2="685" y2="70"/>
+      </g>
+      <g font-size="15" fill="var(--ink)">
+        <rect x="20" y="35" width="160" height="70" rx="10" fill="var(--surface)" stroke="var(--line)"/>
+        <text x="100" y="66" text-anchor="middle" font-weight="600">2 sensores IMU</text><text x="100" y="88" text-anchor="middle" font-size="13" fill="var(--muted)">tobillos · ~50 Hz</text>
+        <rect x="245" y="35" width="160" height="70" rx="10" fill="var(--surface)" stroke="var(--line)"/>
+        <text x="325" y="66" text-anchor="middle" font-weight="600">Tablet</text><text x="325" y="88" text-anchor="middle" font-size="13" fill="var(--muted)">guarda un archivo JSON</text>
+        <rect x="470" y="35" width="160" height="70" rx="10" fill="var(--surface)" stroke="var(--line)"/>
+        <text x="550" y="66" text-anchor="middle" font-weight="600">Servidor</text><text x="550" y="88" text-anchor="middle" font-size="13" fill="var(--muted)">recibe la subida</text>
+        <rect x="695" y="35" width="150" height="70" rx="10" fill="var(--surface)" stroke="var(--line)"/>
+        <text x="770" y="66" text-anchor="middle" font-weight="600">Análisis</text><text x="770" y="88" text-anchor="middle" font-size="13" fill="var(--muted)">días o semanas después</text>
+      </g>
+      <g font-size="12.5" fill="var(--bad)">
+        <text x="207" y="135" text-anchor="middle">pérdida de paquetes</text><text x="207" y="152" text-anchor="middle">desconexión</text>
+        <text x="100" y="135" text-anchor="middle">sensor flojo</text><text x="100" y="152" text-anchor="middle">saturación</text>
+        <text x="437" y="135" text-anchor="middle">subida duplicada</text><text x="437" y="152" text-anchor="middle">archivo vacío</text>
+        <text x="770" y="135" text-anchor="middle" font-weight="600">aquí se descubre</text><text x="770" y="152" text-anchor="middle" font-weight="600">el daño (tarde)</text>
+      </g>
+      <text x="430" y="195" text-anchor="middle" font-size="13" fill="var(--muted)">En rojo: dónde aparece cada falla, y dónde se detecta hoy</text>
+    </svg>
+  </div>
+</section>
+
+<section id="problema">
+  <h2>El problema</h2>
+  <p>Cada falla deja una huella distinta en la señal. Hoy nadie la revisa en el momento de la captura:</p>
+  <div class="scroll"><table>
+    <tr><th>Falla</th><th>Qué pasa</th><th>Cómo se ve en los datos</th></tr>
+    <tr><td><b>Pérdida de paquetes</b></td><td>Distancia o interferencia entre la tablet y los sensores</td><td>Huecos de 0,3 a 1,5 s sin muestras</td></tr>
+    <tr><td><b>Sensor desconectado</b></td><td>Batería baja o caída del Bluetooth a mitad de la prueba</td><td>Un tobillo deja de tener datos antes del final</td></tr>
+    <tr><td><b>Sensor sin movimiento</b></td><td>Sensor mal colocado o flojo</td><td>Un tobillo casi no varía mientras el otro golpetea</td></tr>
+    <tr><td><b>Saturación</b></td><td>Golpes directos al sensor</td><td>La señal se "aplana" en el límite del rango del sensor</td></tr>
+    <tr><td><b>Duplicado</b></td><td>Dos procesos suben el mismo archivo a la vez</td><td>Muestras repetidas con el mismo número de secuencia</td></tr>
+    <tr><td><b>Archivo vacío o ilegible</b></td><td>Error al guardar o al subir</td><td>El archivo no se puede leer o no trae muestras</td></tr>
+  </table></div>
+  <h3>Por qué importa</h3>
+  <div class="cards">
+    <div class="card"><div class="k">Pacientes perdidos</div><p>Recapturar exige transporte, otra cita y tiempo del
+      fisioterapeuta. En campañas de campo muchas veces es imposible.</p></div>
+    <div class="card"><div class="k">Horas de revisión</div><p>Revisar la calidad de cada registro a mano toma varios
+      minutos de un analista.</p></div>
+    <div class="card"><div class="k">Investigación contaminada</div><p>Los registros dañados que nadie detecta sesgan los
+      resultados de los estudios.</p></div>
+  </div>
+  <h3>La oportunidad</h3>
+  <p>Mover la detección <b>del final del proceso al momento de la captura</b>. Si la tablet sabe en un segundo que la
+    prueba salió mal, el fisioterapeuta la repite ahí mismo, con el paciente presente.</p>
+</section>
+
+<section id="solucion">
+  <h2>La solución</h2>
+  <div class="diagram">
+    <svg viewBox="0 0 860 150" width="100%" role="img" aria-label="Pipeline: registro JSON, 13 indicadores, Random Forest, diagnóstico y acción">
+      <g style="color: var(--muted)" stroke="currentColor" stroke-width="1.6" fill="none" marker-end="url(#f)">
+        <line x1="180" y1="60" x2="235" y2="60"/><line x1="405" y1="60" x2="460" y2="60"/><line x1="630" y1="60" x2="685" y2="60"/>
+      </g>
+      <g font-size="15" fill="var(--ink)">
+        <rect x="20" y="25" width="160" height="70" rx="10" fill="var(--surface)" stroke="var(--line)"/>
+        <text x="100" y="56" text-anchor="middle" font-weight="600">Registro JSON</text><text x="100" y="78" text-anchor="middle" font-size="13" fill="var(--muted)">muestras de 2 sensores</text>
+        <rect x="245" y="25" width="160" height="70" rx="10" fill="var(--surface)" stroke="var(--line)"/>
+        <text x="325" y="56" text-anchor="middle" font-weight="600">13 indicadores</text><text x="325" y="78" text-anchor="middle" font-size="13" fill="var(--muted)">huecos, cobertura, …</text>
+        <rect x="470" y="25" width="160" height="70" rx="10" fill="var(--accent-soft)" stroke="var(--accent)"/>
+        <text x="550" y="56" text-anchor="middle" font-weight="600">Random Forest</text><text x="550" y="78" text-anchor="middle" font-size="13" fill="var(--muted)">200 árboles</text>
+        <rect x="695" y="25" width="150" height="70" rx="10" fill="var(--surface)" stroke="var(--line)"/>
+        <text x="770" y="56" text-anchor="middle" font-weight="600">Diagnóstico</text><text x="770" y="78" text-anchor="middle" font-size="13" fill="var(--muted)">6 clases + acción</text>
+      </g>
+      <text x="430" y="132" text-anchor="middle" font-size="13" fill="var(--muted)">Un archivo vacío o ilegible se detecta por regla, antes del modelo</text>
+    </svg>
+  </div>
+
+  <h3>1. Indicadores de calidad (ingeniería de características)</h3>
+  <p>El modelo no mira las miles de muestras crudas: primero se resume cada registro en 13 números que describen su
+    calidad. Los más importantes para el modelo:</p>
+  <div class="scroll"><table>
+    <tr><th>Indicador</th><th>Qué detecta</th></tr>
+    <tr><td>Variabilidad del giroscopio del sensor más quieto</td><td>Sensor sin movimiento o flojo</td></tr>
+    <tr><td>Hueco más largo sin datos</td><td>Pérdida de paquetes</td></tr>
+    <tr><td>Muestras del sensor con menos datos / el de más datos</td><td>Desconexión de un sensor</td></tr>
+    <tr><td>Fracción del tiempo cubierta por el sensor que menos cubre</td><td>Desconexión y huecos</td></tr>
+    <tr><td>Fracción de muestras repetidas</td><td>Archivo duplicado</td></tr>
+    <tr><td>Fracción de muestras en el límite del rango</td><td>Saturación</td></tr>
+  </table></div>
+
+  <h3>2. Modelo: Random Forest</h3>
+  <p>Un <b>Random Forest</b> es un conjunto de árboles de decisión: cada árbol aprende reglas del tipo "si el hueco más
+    largo supera X segundos, entonces…" y el diagnóstico final es la votación de todos los árboles. Se eligió porque:</p>
+  <ul>
+    <li>funciona muy bien con pocos indicadores tabulares y pocos datos;</li>
+    <li>entrega probabilidades por clase (la "confianza" del diagnóstico);</li>
+    <li>muestra qué indicadores pesan más, lo que facilita explicar sus decisiones;</li>
+    <li>es liviano: predice en milisegundos y podría correr dentro de la tablet.</li>
+  </ul>
+
+  <h3>3. Diagnóstico accionable</h3>
+  <p>Cada clase trae una instrucción concreta para el personal clínico. Por ejemplo, ante una pérdida de paquetes:
+    <i>"Acerque la tablet a los sensores y verifique la batería. Repita la prueba ahora."</i></p>
+</section>
+
+<section id="datos">
+  <h2>Datos simulados</h2>
+  <p>El prototipo usa <b>solo datos sintéticos</b>. No contiene registros de pacientes ni datos personales.</p>
+  <ul>
+    <li>Un <b>simulador</b> genera el golpeteo de ambos tobillos (picos periódicos alternados entre pies, con fatiga,
+      ruido del sensor y la variación de tiempos típica de Bluetooth) con el mismo formato JSON que produciría la tablet.</li>
+    <li>Sobre esas señales se <b>inyectan las 5 fallas</b> con intensidades variables: desde fallas evidentes hasta
+      casos sutiles, para que el problema no sea trivial.</li>
+    <li>Se generaron <b>1.500 registros</b> (250 por clase): 1.125 para entrenar y 375 para evaluar.</li>
+  </ul>
+  <p>Simular tiene una ventaja clara: cada registro viene con su etiqueta exacta (qué falla tiene), algo costoso de
+    conseguir con datos reales. La desventaja se discute en <a href="#limitaciones">Limitaciones</a>.</p>
+</section>
+
+<section id="metricas">
+  <h2>Métricas del modelo</h2>
+  <div class="cards">
+    <div class="card"><div class="k">Recall de defectos</div><div class="kpi">97,4 %</div><p>De cada 100 registros dañados, detecta 97. Es la métrica principal: un defecto que se escapa es un paciente perdido.</p></div>
+    <div class="card"><div class="k">Falsas alarmas</div><div class="kpi">4,8 %</div><p>Registros válidos marcados como dañados: repeticiones innecesarias.</p></div>
+    <div class="card"><div class="k">Exactitud</div><div class="kpi">96,3 %</div><p>Diagnósticos correctos entre las 6 clases.</p></div>
+    <div class="card"><div class="k">F1 macro (validación cruzada)</div><div class="kpi">0,960</div><p>± 0,008 entre 5 particiones: el resultado es estable.</p></div>
+  </div>
+  <div class="scroll"><table>
+    <tr><th>Clase</th><th class="n">Precisión</th><th class="n">Recall</th><th class="n">F1</th></tr>
+    <tr><td><span class="pill ok">Registro válido</span></td><td class="n">0,88</td><td class="n">0,95</td><td class="n">0,91</td></tr>
+    <tr><td><span class="pill bad">Pérdida de paquetes</span></td><td class="n">0,95</td><td class="n">1,00</td><td class="n">0,98</td></tr>
+    <tr><td><span class="pill bad">Sensor desconectado</span></td><td class="n">1,00</td><td class="n">0,95</td><td class="n">0,98</td></tr>
+    <tr><td><span class="pill bad">Sensor sin movimiento</span></td><td class="n">0,98</td><td class="n">1,00</td><td class="n">0,99</td></tr>
+    <tr><td><span class="pill bad">Saturación</span></td><td class="n">0,96</td><td class="n">0,87</td><td class="n">0,92</td></tr>
+    <tr><td><span class="pill bad">Duplicado</span></td><td class="n">1,00</td><td class="n">1,00</td><td class="n">1,00</td></tr>
+  </table></div>
+  <p class="note">La clase más difícil es la saturación leve, que el modelo a veces confunde con un golpeteo válido muy vigoroso.</p>
+</section>
+
+<section id="impacto">
+  <h2>Métricas de impacto</h2>
+  <p>Escenario base (supuestos editables en la pestaña <i>Impacto</i> del prototipo): 400 pruebas al mes, 15 % con
+    fallas, 4 minutos de revisión manual por prueba, COP 35.000 por hora de analista, COP 120.000 por recaptura y 40 %
+    de pacientes que se logran recapturar.</p>
+  <div class="scroll"><table>
+    <tr><th>Indicador</th><th>Hoy</th><th>Con la solución</th></tr>
+    <tr><td>Registros útiles para investigación</td><td>85 %</td><td><b>99,6 %</b> (+14,6 puntos)</td></tr>
+    <tr><td>Tiempo hasta detectar una falla</td><td>Días o semanas</td><td><b>Menos de 1 segundo</b></td></tr>
+    <tr><td>Fallas detectadas con el paciente presente</td><td>0 de 60 al mes</td><td><b>58 de 60</b></td></tr>
+    <tr><td>Horas de revisión manual liberadas</td><td>—</td><td><b>~23 h al mes</b></td></tr>
+    <tr><td>Ahorro estimado</td><td>—</td><td><b>~COP 3,6 millones al mes</b></td></tr>
+    <tr><td>Repeticiones innecesarias (costo de las falsas alarmas)</td><td>—</td><td>~16 al mes</td></tr>
+  </table></div>
+</section>
+
+<section id="prototipo">
+  <h2>El prototipo</h2>
+  <p>Una app de <b>Streamlit</b> con cuatro pestañas. Se ejecuta con <b>stlite</b>, que corre Python en el navegador, por
+    eso puede publicarse en GitHub Pages sin servidor. Al abrirla, entrena el modelo con los datos simulados.</p>
+  <dl>
+    <dt>🔎 Analizar registro</dt><dd>Elija un ejemplo simulado (o suba un JSON con el mismo formato) y vea el diagnóstico, la confianza, la señal de ambos tobillos y qué indicadores quedaron fuera del rango normal.</dd>
+    <dt>📂 Jornada (lote)</dt><dd>Diagnostica todos los registros de una jornada a la vez y dice cuáles repetir.</dd>
+    <dt>📊 Desempeño del modelo</dt><dd>Métricas, matriz de confusión e importancia de cada indicador.</dd>
+    <dt>💰 Impacto</dt><dd>Calculadora de los indicadores de negocio con supuestos editables.</dd>
+  </dl>
+  <figure><img src="docs/capturas/1_analizar_registro.jpg" alt="Pestaña Analizar registro: diagnóstico de un registro válido y su señal" loading="lazy" />
+    <figcaption>Analizar registro: diagnóstico, probabilidades por clase y señal de ambos tobillos.</figcaption></figure>
+  <figure><img src="docs/capturas/2_desempeno.jpg" alt="Pestaña Desempeño del modelo: métricas, matriz de confusión e importancia" loading="lazy" />
+    <figcaption>Desempeño del modelo: matriz de confusión e importancia de los indicadores.</figcaption></figure>
+  <figure><img src="docs/capturas/3_impacto.jpg" alt="Pestaña Impacto: calculadora de indicadores de negocio" loading="lazy" />
+    <figcaption>Impacto: calculadora con supuestos editables.</figcaption></figure>
+  <div class="btns"><a class="btn primary" href="app/">Abrir el prototipo →</a></div>
+</section>
+
+<section id="limitaciones">
+  <h2>Limitaciones y siguientes pasos</h2>
+  <ul>
+    <li><b>Datos simulados.</b> El desempeño real puede ser menor: las fallas reales son más variadas que las
+      simuladas. El siguiente paso es etiquetar registros reales defectuosos y reentrenar.</li>
+    <li><b>Una sola prueba.</b> Otras pruebas motoras (marcha, equilibrio) necesitan sus propios rangos y ejemplos.</li>
+    <li><b>Supuestos de impacto.</b> Los costos y tasas del escenario base son estimaciones a validar con la operación real.</li>
+    <li><b>Integración.</b> Llevar el modelo a la tablet o al servidor de subida para alertar en tiempo real.</li>
+  </ul>
+</section>
+
+<section id="glosario">
+  <h2>Glosario</h2>
+  <dl>
+    <dt>IMU</dt><dd>Unidad de medición inercial: sensor con acelerómetro y giroscopio.</dd>
+    <dt>Bluetooth (BLE)</dt><dd>Conexión inalámbrica entre los sensores y la tablet; puede perder paquetes.</dd>
+    <dt>Saturación</dt><dd>Cuando el movimiento supera el rango máximo que el sensor puede medir y la señal se recorta.</dd>
+    <dt>Clasificación</dt><dd>Tarea de ML que asigna cada registro a una categoría (aquí, 6 clases).</dd>
+    <dt>Precisión</dt><dd>De los registros que el modelo asignó a una clase, cuántos eran realmente de esa clase.</dd>
+    <dt>Recall</dt><dd>De los registros que eran de una clase, cuántos encontró el modelo.</dd>
+    <dt>F1</dt><dd>Promedio armónico de precisión y recall.</dd>
+    <dt>Falsa alarma</dt><dd>Un registro válido que el modelo marca como dañado.</dd>
+    <dt>Matriz de confusión</dt><dd>Tabla que cruza la clase real con la predicha; la diagonal son los aciertos.</dd>
+    <dt>Validación cruzada</dt><dd>Entrenar y evaluar varias veces con particiones distintas para medir la estabilidad.</dd>
+  </dl>
+</section>
+
+<section id="repo">
+  <h2>Repositorio</h2>
+  <div class="scroll"><table>
+    <tr><th>Archivo</th><th>Qué hace</th></tr>
+    <tr><td><code>src/simulador.py</code></td><td>Genera registros IMU sintéticos e inyecta las 5 fallas</td></tr>
+    <tr><td><code>src/features.py</code></td><td>Calcula los 13 indicadores de calidad</td></tr>
+    <tr><td><code>src/modelo.py</code></td><td>Configuración del Random Forest y la partición de datos</td></tr>
+    <tr><td><code>src/train.py</code></td><td>Simula el dataset, entrena, evalúa y guarda métricas y ejemplos</td></tr>
+    <tr><td><code>app.py</code></td><td>Interfaz en Streamlit</td></tr>
+    <tr><td><code>app/index.html</code></td><td>Ejecuta la app en el navegador con stlite (GitHub Pages)</td></tr>
+  </table></div>
+  <p>Para correrlo localmente con Python:</p>
+  <pre>pip install -r requirements.txt
+python src/train.py      # opcional: regenera datos, métricas y ejemplos
+streamlit run app.py</pre>
+</section>
+
+<footer>Prototipo académico con datos 100 % simulados. No contiene datos personales.</footer>
+</main>
+</body>
+</html>

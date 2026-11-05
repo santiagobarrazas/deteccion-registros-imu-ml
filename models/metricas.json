@@ -1,0 +1,188 @@
+{
+  "n_entrenamiento": 1125,
+  "n_prueba": 375,
+  "f1_macro_cv": [
+    0.9597,
+    0.0079
+  ],
+  "reporte": {
+    "OK": {
+      "precision": 0.8805970149253731,
+      "recall": 0.9516129032258065,
+      "f1-score": 0.9147286821705426,
+      "support": 62.0
+    },
+    "PERDIDA_PAQUETES": {
+      "precision": 0.9538461538461539,
+      "recall": 1.0,
+      "f1-score": 0.9763779527559056,
+      "support": 62.0
+    },
+    "SENSOR_DESCONECTADO": {
+      "precision": 1.0,
+      "recall": 0.9523809523809523,
+      "f1-score": 0.975609756097561,
+      "support": 63.0
+    },
+    "SENSOR_SIN_MOVIMIENTO": {
+      "precision": 0.9841269841269841,
+      "recall": 1.0,
+      "f1-score": 0.992,
+      "support": 62.0
+    },
+    "SATURACION": {
+      "precision": 0.9649122807017544,
+      "recall": 0.873015873015873,
+      "f1-score": 0.9166666666666666,
+      "support": 63.0
+    },
+    "DUPLICADO": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1-score": 1.0,
+      "support": 63.0
+    },
+    "accuracy": 0.9626666666666667,
+    "macro avg": {
+      "precision": 0.9639137389333775,
+      "recall": 0.9628349547704387,
+      "f1-score": 0.962563842948446,
+      "support": 375.0
+    },
+    "weighted avg": {
+      "precision": 0.9641088617704486,
+      "recall": 0.9626666666666667,
+      "f1-score": 0.9625760693322296,
+      "support": 375.0
+    }
+  },
+  "matriz_confusion": [
+    [
+      59,
+      0,
+      0,
+      1,
+      2,
+      0
+    ],
+    [
+      0,
+      62,
+      0,
+      0,
+      0,
+      0
+    ],
+    [
+      0,
+      3,
+      60,
+      0,
+      0,
+      0
+    ],
+    [
+      0,
+      0,
+      0,
+      62,
+      0,
+      0
+    ],
+    [
+      8,
+      0,
+      0,
+      0,
+      55,
+      0
+    ],
+    [
+      0,
+      0,
+      0,
+      0,
+      0,
+      63
+    ]
+  ],
+  "clases": [
+    "OK",
+    "PERDIDA_PAQUETES",
+    "SENSOR_DESCONECTADO",
+    "SENSOR_SIN_MOVIMIENTO",
+    "SATURACION",
+    "DUPLICADO"
+  ],
+  "recall_defectos": 0.9744,
+  "falsas_alarmas": 0.0484,
+  "rango_ok": {
+    "n_sensores": [
+      2.0,
+      2.0
+    ],
+    "duracion_s": [
+      21.6781,
+      42.0966
+    ],
+    "ratio_muestras_lados": [
+      0.9898,
+      1.0
+    ],
+    "cobertura_min": [
+      0.913,
+      0.9454
+    ],
+    "hueco_max_s": [
+      0.058,
+      0.9895
+    ],
+    "frac_huecos": [
+      0.0005,
+      0.0033
+    ],
+    "frac_duplicados": [
+      0.0,
+      0.0
+    ],
+    "frac_ts_desordenado": [
+      0.0,
+      0.0
+    ],
+    "gyro_std_min": [
+      3.4644,
+      52.7143
+    ],
+    "gyro_std_ratio": [
+      0.4447,
+      0.9824
+    ],
+    "frac_saturacion": [
+      0.0,
+      0.0
+    ],
+    "acc_media_norma": [
+      0.8991,
+      1.1588
+    ],
+    "corr_lados": [
+      -0.391,
+      0.4033
+    ]
+  },
+  "importancia": {
+    "gyro_std_min": 0.1962,
+    "hueco_max_s": 0.1571,
+    "ratio_muestras_lados": 0.124,
+    "cobertura_min": 0.1228,
+    "gyro_std_ratio": 0.0906,
+    "frac_duplicados": 0.0839,
+    "frac_ts_desordenado": 0.083,
+    "frac_huecos": 0.0539,
+    "frac_saturacion": 0.0336,
+    "acc_media_norma": 0.033,
+    "corr_lados": 0.0146,
+    "duracion_s": 0.0075,
+    "n_sensores": 0.0
+  }
+}
